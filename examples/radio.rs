@@ -15,9 +15,10 @@ use hal::rcc;
 use hal::serial;
 use hal::serial::SerialExt;
 use hal::stm32;
-//use nb::block;
+use nb::block;
 use rt::entry;
-use hal::time;
+use core::borrow::BorrowMut;
+
 
 #[entry]
 fn main() -> ! {
@@ -30,9 +31,10 @@ fn main() -> ! {
     let tx = gpioa.pa9;
     let rx = gpioa.pa10;
 
+    let mut timer = dp.TIM2.timer(1.hz(), rcc.borrow_mut());
 
     let mut uart_cfg = serial::Config::default();
-    uart_cfg.baudrate = time::Bps(115200_u32) ; //19200_u32.bsp();
+    uart_cfg.baudrate =115200_u32.bps();// time::Bps(115200_u32) ; //19200_u32.bsp();
 
     let serial = dp
         .USART1
@@ -46,5 +48,6 @@ fn main() -> ! {
         //tx.write_str("\r\n").unwrap();
         //block!(tx.write(received)).ok();
         writeln!(tx, "hello world\n").expect("failed to send");
+        block!(timer.wait()).unwrap();
     }
 }
