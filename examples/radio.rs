@@ -44,10 +44,11 @@ fn main() -> ! {
     let (mut tx, mut _rx) = serial.split();
 
     loop {
-        //let received = block!(rx.read()).unwrap();
-        //tx.write_str("\r\n").unwrap();
-        //block!(tx.write(received)).ok();
-        writeln!(tx, "hello world\n").expect("failed to send");
+        writeln!(tx, "hello world\n").ok();
         block!(timer.wait()).unwrap();
     }
 }
+
+//let received = block!(rx.read()).unwrap();
+//tx.write_str("\r\n").unwrap();
+//block!(tx.write(received)).ok();
