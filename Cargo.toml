@@ -15,10 +15,22 @@ lto = false
 [dependencies]
 # stm32l151
 # STM32L151CBU6A
-stm32l1xx-hal = { version = "0.1.0", features = ["stm32l151", "rt"], default-features = false}
+stm32l1xx-hal = { version = "0.1.0", features = ["stm32l151", "rt"], default-features = false }
+radio-sx127x = { version = "0.10.1", default-features = false }
 panic-semihosting = "0.5.6"
 #libc = { version = "0.2", default-features = false }
 panic-halt = "0.2.0"
 cortex-m = "0.6.7"
-cortex-m-rt = {version = "0.6.13"}
+cortex-m-rt = { version = "0.6.13" }
 nb = "1.0.0"
+
+[dependencies.embedded-spi]
+version = "0.5.1"
+default-features = false
+
+[dependencies.embedded-hal]
+version = "0.2.3"
+features = ["unproven"]
+
+[dependencies.radio]
+version = "0.4.0"
