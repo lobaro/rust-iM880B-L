@@ -1,4 +1,4 @@
-#![deny(warnings)]
+//#![deny(warnings)]
 #![deny(unsafe_code)]
 #![no_main]
 #![no_std]
@@ -22,19 +22,18 @@ use hal::serial::SerialExt;
 use hal::stm32;
 use nb::block;
 use rt::entry;
-use embedded_hal::digital::v2::OutputPin;
 //use sx::Sx127x;
 //use hal::delay::Delay;
 //use hal::spi::{Mode, Phase, Polarity};
 use radio::Transmit;
 
-use embedded_spi::{wrapper::Wrapper as SpiWrapper};
 
-//use hal::{          spi::{Spi, Mode, Phase, Polarity},};
+use hal::{          spi::{Spi, Mode, Phase, Polarity},};
 use sx::Sx127x;
 use sx::device::{Modem, Channel, PaConfig, PaSelect};
 use sx::device::lora::{LoRaChannel, Bandwidth, SpreadingFactor, CodingRate, LoRaConfig, PayloadLength, PayloadCrc, FrequencyHopping};
 use core::borrow::{BorrowMut, Borrow};
+//use embedded_hal::spi::{Mode, Phase, Polarity};
 
 
 const FREQUENCY: u32 = 907_400_000;
@@ -104,9 +103,11 @@ fn main() -> ! {
         .SPI3
         .spi((sck, miso, mosi), hal::spi::MODE_0, 100.khz(), &mut rcc);
 
-    /*
-    let spi1 = Spi::spi1(
-        cp.SPI1,
+
+    //embedded_hal::blocking::spi::transfer::Default
+    //let spi3: Spi::spi1spi = spi.into();
+   /* let _spi1 = Spi::spi1(
+        dp.SPI1,
         (gpioa.pa5.into_alternate_af5(),  // sck   on PA5
          gpioa.pa6.into_alternate_af5(),  // miso  on PA6
          gpioa.pa7.into_alternate_af5()   // mosi  on PA7
@@ -117,24 +118,32 @@ fn main() -> ! {
         },
         100.khz().into(),
         rcc.borrow_mut(),
-    );
-*/
+    );*/
+
 
     let cp = cortex_m::Peripherals::take().unwrap();
     let p = cortex_m::Peripherals::take().unwrap();
 
 
     //let cs_pin = gpiob.pb0.into_push_pull_output().borrow() as &dyn OutputPin<Error = Infallible>; // B0
-    let cs_pin = gpiob.pb0.into_push_pull_output(); // B0
-    let busy_pin = gpiob.pb8.into_floating_input();
-    let sdn_pin = gpioa.pa2.into_push_pull_output().borrow() as &dyn OutputPin<Error = Infallible>; // SX1272_RST_PA2_DEFAULT
-    let xxx : dyn embedded_hal::digital::v2::OutputPin<Error = Infallible> = cs_pin;
-    // Create SpiWrapper over spi/cs/busy
-    let mut hal = SpiWrapper::new(spi, cs_pin, delay);
-    hal.with_busy(busy_pin.into());
-    hal.with_reset(sdn_pin); //
+    let cs_pin = gpiob.pb0.into_push_pull_output(); // CS = PB0
+    let busy_pin = gpiob.pb1.into_floating_input(); // DIO0 = PB1 - RxDone
+    let ready_pin = gpiob.pb10.into_floating_input(); // DIO1 = PB10 - RxTimeout
+    let reset_pin = gpioa.pa2.into_push_pull_output(); // Reset = PA2 (Default IM880B-L), PA4 (Lobaro LoRa v3.x)
+
+
     // Create instance with new hal
-    let mut lora = Sx127x::new(hal, &CONFIG_RADIO).unwrap();
+    let mut lora = Sx127x::spi(
+        spi,
+        cs_pin.into(),
+        busy_pin.into(),
+        ready_pin.into(),
+        reset_pin.into(),
+        delay.into(),
+        &CONFIG_RADIO,
+    ).unwrap();
+
+    // let mut lora = Sx127x::new(hal, &CONFIG_RADIO).unwrap();
 
     // let mut _radio1 = Sx127x::new(lora, &sx::prelude::Config::default()).expect("error creating radio1");
 
@@ -145,9 +154,9 @@ fn main() -> ! {
         lora.start_transmit(message).unwrap();    // should handle error
 
         match lora.check_transmit() {
-            Ok(b) => if b { writeln!(tx, "TX complete").unwrap() } else { writeln!(tx,"TX not complete").unwrap() },
+            Ok(b) => if b { writeln!(tx, "TX complete").unwrap() } else { writeln!(tx, "TX not complete").unwrap() },
 
-            Err(_err) => writeln!(tx,"Error in lora.check_transmit(). Should return True or False.").unwrap(),
+            Err(_err) => writeln!(tx, "Error in lora.check_transmit(). Should return True or False.").unwrap(),
         };
 
 
